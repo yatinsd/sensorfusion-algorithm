@@ -1,7 +1,7 @@
 
-function [x_state,P_cov,K_HINF_gain]=AHINF_form(xy1,xy2,h_0,alpha,x_state_ini,P_cov_ini,F,G,Q,R,G_t_1,G_t_2)
-  
-%% Extended Kalman Filter
+function [x_state,P_cov,K_HINF_gain]=AHINF_form(xy1,xy2,h_0,alpha,x_state_ini,P_cov_ini,F,G,Q,R)
+ 
+%% Adaptive H-Infinity  Filter
 %% =========================
 
 persistent firstRun
@@ -35,7 +35,7 @@ P_s = F*P_s*F' + G *Q*G'; % Error covariance extrapolation
 %% =========================
 %% nonlinear measurement eq
  
-h = hk(xy1,xy2,X_s,h_0,G_t_1,G_t_2); 
+h = hk(xy1,xy2,X_s,h_0); 
 %% Jacobian of nonlinear measurement eq.
 H = JH(xy1,xy2,X_s,h_0); 
 %% ===============================================
@@ -56,7 +56,7 @@ X_s = X_s +k*(v);
 x_state = X_s ;
 
 %computing of residual
-eps_adpt = alpha - hk(xy1,xy2,X_s,h_0,G_t_1,G_t_2); 
+eps_adpt = alpha - hk(xy1,xy2,X_s,h_0); 
 
 %% Equation 7: Error covariance update
 P_s = P_s*inv(eye(2)-sigma.*S_bar*P_s+H'*inv(R_adpt)*H*P_s)+Q_adpt;
@@ -70,14 +70,14 @@ end
 %% ===============================================
 %% h(X): Nonlinear measurement eq
 
-function h=hk(uav_init_pos, uav_actual_pos,X_s,h_0,G_t_1,G_t_2)
+function h=hk(uav_init_pos, uav_actual_pos,X_s,h_0)
 
 uav_init_pos = [uav_init_pos, h_0];
 uav_actual_pos = [uav_actual_pos, h_0];
 
 X_predicted = [X_s; h_0];
 
-h=(G_t_2/G_t_1)*norm(X_predicted - uav_init_pos')^2 / norm(X_predicted - uav_actual_pos')^2;
+h=norm(X_predicted - uav_init_pos')^2 / norm(X_predicted - uav_actual_pos')^2;
 end
 
 function H=JH(uav_init_pos, uav_actual_pos, X_s,h_0)

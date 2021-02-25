@@ -1,6 +1,6 @@
 
-function [x_state,P_cov,K_EKF_gain]=AKF_form(xy1,xy2,h_0,alpha,x_state_ini,P_cov_ini,F,G,Q,R,G_t_1,G_t_2)
-%% Extended Kalman Filter
+function [x_state,P_cov,K_EKF_gain]=AKF_form(xy1,xy2,h_0,alpha,x_state_ini,P_cov_ini,F,G,Q,R)
+%% Adaptive Kalman Filter
 %% =========================
 persistent  Q_adpt R_adpt alpha_adpt eps_adpt 
 persistent firstRun X_s P_s
@@ -51,6 +51,7 @@ K_EKF_gain=k;
 X_s = X_s +k*(v);
 x_state = X_s ;
 
+%computing of residual
 eps_adpt = alpha - hk(xy1,xy2,X_s,h_0); 
 
 %% Equation 7: Error covariance update

@@ -1,5 +1,7 @@
 function [x_state,P_cov,K_EKF_gain]=UKF_form(x_init,x_current,h_0,alpha,x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF)
 
+%% Unscendet Kalman Filter
+%% =========================
     persistent n m kappa
     persistent firstRun X_s P_s
 
@@ -54,19 +56,15 @@ function [x_state,P_cov,K_EKF_gain]=UKF_form(x_init,x_current,h_0,alpha,x_state_
     P_s = Pp - K_EKF_gain*Pz*K_EKF_gain';
     P_cov = P_s;
 end
-%%
-function h=hx(X_s,xy1,xy2,h_0)
-six=xy1(1);
-siy=xy1(2);
- 
-skx=xy2(1);
-sky=xy2(2);
- 
-xk=X_s(1);
-yk=X_s(2);
 
-h=((sqrt((((xk-six)^2)+((yk-siy)^2)+(h_0^2)))^2)/(sqrt((((xk-skx)^2)+((yk-sky)^2)+(h_0^2)))^2));
+function h=hx(X_s,uav_init_pos, uav_actual_pos,h_0)
 
+uav_init_pos = [uav_init_pos, h_0];
+uav_actual_pos = [uav_actual_pos, h_0];
+
+X_predicted = [X_s; h_0];
+
+h=norm(X_predicted - uav_init_pos')^2 / norm(X_predicted - uav_actual_pos')^2;
 end
 
 %%
@@ -88,6 +86,7 @@ wPts=zeros(1,nPts);
 xPts=zeros(n,nPts);
 
 % Calculate matrix square root of weighted covariance matrix
+P = nearestSPD(P);
 Psqrtm=(chol((n+lambda)*P))';  
 
 % Array of the sigma points

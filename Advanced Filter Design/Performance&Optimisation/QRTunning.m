@@ -48,7 +48,7 @@ Q=0;
 % Min, Max and Step msize for the iteration
 qMin=0;
 qStep=0.1;
-qMax=10;
+qMax=1;
 for q = qMin : qStep : qMax
     Q = [Q, q];
 end
@@ -66,7 +66,7 @@ meanRMSE_finalValues = zeros(size(Q,2), size(R,2));
 for m=1:size(Q,2)
     for k=1:size(R,2)
         for i=1:nIterations
-            [x_state(:, :, i), x_t_vec] = Main_anisotropic_EKF(plotting, Q(m), R(k), x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i),P_init);
+            [x_state(:, :, i), x_t_vec] = Main_isotropic_EKF(plotting, Q(m), R(k), x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i),P_init);
             for l=1 : size(x_state, 2)
                 RMSE(i, l) = norm((x_state(:,l, i)- x_t_vec'));
             end
@@ -109,7 +109,7 @@ clear Q R meanRMSEvalues meanRMSE_finalValues
 R=0;
 % Min, Max and Step msize for the iteration
 rMin=0;
-rStep=0.1;
+rStep=1;
 rMax=10;
 % Ieration loop for R
 for r = rMin : rStep : rMax
@@ -126,7 +126,7 @@ end
 for m=1:size(Q,2)
     for k=1:size(R,2)
         for i=1:nIterations
-            [x_state(:, :, i), x_t_vec] = Main_anisotropic_EKF(plotting, Q(m), R(k), x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i),P_init);
+            [x_state(:, :, i), x_t_vec] = Main_isotropic_EKF(plotting, Q(m), R(k), x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i),P_init);
             for l=1 : size(x_state, 2)
                 RMSE(i, l) = norm((x_state(:,l, i)- x_t_vec'));
             end

@@ -1,12 +1,14 @@
 
-function [x_state,P_cov,K_EKF_gain]=PF_form(xy1,xy2,h_0,alpha,x_state_ini,P_cov_ini,F,G,Q,R)
+function [x_state,P_cov,K_EKF_gain]=PF_form_SYS(xy1,xy2,h_0,alpha,x_state_ini,P_cov_ini,F,G,Q,R,N)
 
     persistent firstRun
     persistent Po X_s P_s
     
     %% initilize
-    % Number of Particles
-    N = 1000;
+    %initilize our initial, prior particle distribution as a gaussian around
+    %the true initial value
+    %N = 1000; % Number of Particles
+    K = 100;  % Gitter Factor
     if isempty(firstRun)
         
         X_s = x_state_ini;
@@ -35,45 +37,50 @@ function [x_state,P_cov,K_EKF_gain]=PF_form(xy1,xy2,h_0,alpha,x_state_ini,P_cov_
     
     % Baseline estimation
     for i = 1 : N
-        Po_pr(:, i) = Po(:, i) + G*sqrt(Q) * [randn; randn];
+        Po_pr(:, i) = Po(:, i) + K*G*sqrt(Q) * [randn; randn];          % Particle in Roughing step
         Zhat = hk(xy1,xy2,Po_pr(:, i),h_0)+ sqrt(R) * randn;            % Measurment Value of Particle
         diff =  Z - Zhat;                                               % Distance to observation
+%         R or 2*pi
         w(i) = (1 / sqrt(R) / sqrt(2 * pi)) * exp(-(diff)^2 / 2 / R);   % Finding the weight
     end
 
-    % Normalize to get the sampling weight
-    wsum = sum(w);
+    % normalise weights & form cumulative distribution 
+    w=cumsum(w/sum(w));      
+
     
-    for i = 1 : N
-        w(i) = w(i) / wsum;
+    % Resample - Systematic Method
+    add=1/N; 
+    stt=add*rand(1);     
+    selection=[stt : add : stt+(N-1)*add];
+    j=1;    
+    
+    x_post=zeros(size(Po_pr));
+    for i=1:N  
+        while selection(i) >= w(j);        
+            j=j+1;      
+        end     
+        x_post(:,i)=Po_pr(:,j);              
     end
-    %=========================%
-    % Resample - Residual Systematic Resampling Method
+    Po = x_post;
     
-    M = length(w);
-    i =1;
-    u = rand/N;
-    j = 0;
-    while j < M
-        j = j + 1;
-        Ns = floor(N*(w(j)-u))+1;
-          counter = 1;
-          while counter <= Ns
-            Po(:,i)=Po_pr(:,j); 
-            i = i + 1; counter = counter + 1;
-          end
-        u = u + Ns/N-w(j);
-    end 
-    
-    
-    %==== Ploting of the Particle Postion in each time step -  Deactivated
-    %(Uncomment for special effects :))
+%%Plot particles in 2D Graph==============================
+
 %     hold on
 %     p2= plot(Po(1,:)/10^3,Po(2,:)/10^3,'r.');
 %     pause(0.001)
 %     delete(p2)
-
     % Mean of the System
+    
+%%Plot PDF in 3D Space==============================    
+%     figure(2);
+%     plot3(Po_pr(1,:), Po_pr(2,:), w,'+');
+%     hold on;
+%     plot(Po_pr(1,:),Po_pr(2,:),'.b','markersize',30);
+%     plot(x_post(1,:),x_post(2,:), '.m','markersize',10);
+%     pause;
+%     close;
+%     figure(1); 
+   
     Pest = mean(Po');
 
 

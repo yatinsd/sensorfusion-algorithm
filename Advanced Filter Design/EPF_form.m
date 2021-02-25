@@ -1,5 +1,8 @@
 
-function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF,G_t_1,G_t_2)
+function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF)
+
+%% Extended Particle Filter
+%% =========================
 
     persistent firstRun
     persistent X_s P_s x_hat N
@@ -52,14 +55,14 @@ function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_
     for i = 1 : N
 
         % Error covariance extrapolation
-        P_s(:,:,i) = F*(P_s(:,:,i))*F' + + sqrt(Q) * [randn; randn]; 
+        P_s(:,:,i) = F*(P_s(:,:,i))*F' + Q; 
         % Measurment Value of Particle
-        Zhat = hk(xy1,xy2,Po(:, i),x_state_ini,h_0,G_t_1,G_t_2)+ sqrt(R) * randn;
+        Zhat = hk(xy1,xy2,Po(:, i),x_state_ini,h_0)+ sqrt(R) * randn;
         % Distance to observation
         diff =  Z - Zhat;                                                      
   
         % Jacobian of nonlinear measurement
-        H = JH(xy1,xy2,Po(:, i),h_0,G_t_1,G_t_2);
+        H = JH(xy1,xy2,Po(:, i),h_0);
         % Calculate the Kalman gain
         S = (H*P_s(:,:,i)*H' +R);
         %Calculating Kalman Gain
@@ -83,36 +86,32 @@ function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_
     end
     %=========================
     
-    % Resample - Residual Systematic Resampling Method
-    
-    M = length(w);
-    i =1;
-    u = rand/N;
-    j = 0;
-    while j < M
-        j = j + 1;
-        Ns = floor(N*(w(j)-u))+1;
-          counter = 1;
-          while counter <= Ns
-            Po(:,i)=Po_pr(:,j); 
-            i = i + 1; counter = counter + 1;
-          end
-        u = u + Ns/N-w(j);
-    end 
-    
+    % Resample
+    for i = 1 : N
+        u = rand; % uniform random number between 0 and 1
+        qtempsum = 0;
+        for j = 1 : N
+            qtempsum = qtempsum + w(j);
+            if qtempsum >= u
+                Po(:, i) = Po_pr(:, j);
+                break;
+            end
+        end
+    end
     %=====
+    %==== Ploting of the Particle Postion in each time step -  Deactivated
+    %(Uncomment for special effects :))
 %     hold on
 %     p2= plot(Po(1,:)/10^3,Po(2,:)/10^3,'r.');
 %     pause(0.001)
 %     delete(p2)
-
     % Mean of the System
     Pest = mean(Po');
 
 
     %% Equation 6: State update
     X_s = Pest;
-    X_s=MovAvgFilter(X_s');
+    %X_s=MovAvgFilter(X_s');
     x_state = X_s;
 
     %% Equation 7: Error covariance update (not updated bc only internal use)
@@ -122,7 +121,7 @@ end
 
 %% ===============================================
 %% h(X): Nonlinear measurement equation
-function h=hk(xy1, xy2, X_s,x_state_ini,h_0,G_t_1,G_t_2)
+function h=hk(xy1, xy2, X_s,x_state_ini,h_0)
  
 six=xy1(1);
 siy=xy1(2);
@@ -134,10 +133,10 @@ xk=X_s(1);
 yk=X_s(2);
 
 % h with h_0,G_t_2 and G_t_1
-h=(G_t_2/G_t_1)*((sqrt((((xk-six)^2)+((yk-siy)^2)+(h_0^2)))^2)/(sqrt((((xk-skx)^2)+((yk-sky)^2)+(h_0^2)))^2));
+h=((sqrt((((xk-six)^2)+((yk-siy)^2)+(h_0^2)))^2)/(sqrt((((xk-skx)^2)+((yk-sky)^2)+(h_0^2)))^2));
 end
 
-function H=JH(xy1,xy2,X_s,h_0,G_t_1,G_t_2)
+function H=JH(xy1,xy2,X_s,h_0)
 six=xy1(1);
 siy=xy1(2);
  
@@ -147,11 +146,14 @@ sky=xy2(2);
 xk=X_s(1);
 yk=X_s(2);
 
-% H with h_0 and the gains for the measurement 
-H(1)= (G_t_2*(2*skx - 2*xk)*((six - xk)^2 + (siy - yk)^2 + h_0^2))/(G_t_1*((skx - xk)^2 + (sky - yk)^2 + h_0^2)^2) - (G_t_2*(2*six - 2*xk))/(G_t_1*((skx - xk)^2 + (sky - yk)^2 + h_0^2)) ;
-H(2)= (G_t_2*(2*sky - 2*yk)*((six - xk)^2 + (siy - yk)^2 + h_0^2))/(G_t_1*((skx - xk)^2 + (sky - yk)^2 + h_0^2)^2) - (G_t_2*(2*siy - 2*yk))/(G_t_1*((skx - xk)^2 + (sky - yk)^2 + h_0^2));
-end
+% H without h_0
+% H(1)= ((2*skx - 2*xk)*((six - xk)^2 + (siy - yk)^2))/((skx - xk)^2 + (sky - yk)^2)^2 - (2*six - 2*xk)/((skx - xk)^2 + (sky - yk)^2);
+% H(2)= ((2*sky - 2*yk)*((six - xk)^2 + (siy - yk)^2))/((skx - xk)^2 + (sky - yk)^2)^2 - (2*siy - 2*yk)/((skx - xk)^2 + (sky - yk)^2);
 
+% H with h_0 
+H(1)= ((2*skx - 2*xk)*((six - xk)^2 + (siy - yk)^2 + h_0^2))/((skx - xk)^2 + (sky - yk)^2 + h_0^2)^2 - (2*six - 2*xk)/((skx - xk)^2 + (sky - yk)^2 + h_0^2) ;
+H(2)= ((2*sky - 2*yk)*((six - xk)^2 + (siy - yk)^2 + h_0^2))/((skx - xk)^2 + (sky - yk)^2 + h_0^2)^2 - (2*siy - 2*yk)/((skx - xk)^2 + (sky - yk)^2 + h_0^2);
+end
 %Moving Average for smoothing 
 function avg = MovAvgFilterX(x)
     %
@@ -218,7 +220,7 @@ function avg = MovAvgFilter(x)
 
 
     if isempty(firstRun)
-      n    = 100;
+      n    = 50;
       
       xbuf = ones(size(x,1),n);
       

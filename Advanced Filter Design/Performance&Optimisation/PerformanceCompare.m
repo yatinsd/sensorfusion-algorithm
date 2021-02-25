@@ -111,7 +111,7 @@ for i=1:nIterations
 end
 
 for i=1:nIterations
-    [x_state_ekf(:, :, i), x_t_vec, P_cov_EKF(:,:,:,i),TIME_EKF(i)] = Main_anisotropic_EKF(plotting, Q_EKF, R_EKF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
+    [x_state_ekf(:, :, i), x_t_vec, P_cov_EKF(:,:,:,i),TIME_EKF(i)] = Main_isotropic_EKF(plotting, Q_EKF, R_EKF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
     % For each t calculate the distance between the estimate and the real location
     for k=1 : size(x_state_ekf, 2)
         % Calculate the norm of all the states 
@@ -127,7 +127,7 @@ CRLB_EKF = mean(CRLB_EKF);
 TIME_EKF = mean(TIME_EKF)
 
 for i=1:nIterations
-    [x_state_ukf(:, :, i), x_t_vec_UKF, P_cov_UKF(:,:,:,i),TIME_UKF(i)] = Main_anisotropic_UKF(plotting, Q_UKF, R_UKF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
+    [x_state_ukf(:, :, i), x_t_vec_UKF, P_cov_UKF(:,:,:,i),TIME_UKF(i)] = Main_isotropic_UKF(plotting, Q_UKF, R_UKF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
     for k=1 : size(x_state_ukf, 2)
         RMSE_UKF(i, k) = norm((x_state_ukf(:,k, i)- x_t_vec_UKF'));
         CRLB_UKF(i, k) = norm(diag(sqrt(diag(P_cov_UKF(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
@@ -139,7 +139,7 @@ CRLB_UKF = mean(CRLB_UKF);
 TIME_UKF = mean(TIME_UKF)
 
 for i=1:nIterations
-    [x_state_pf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_PF(i)] = Main_anisotropic_PF(plotting, Q_PF, R_PF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit,N);
+    [x_state_pf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_PF(i)] = Main_isotropic_PF(plotting, Q_PF, R_PF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit,N);
     for k=1 : size(x_state_pf, 2)
         RMSE_PF(i, k) = norm((x_state_pf(:,k, i)- x_t_vec'));
         CRLB_PF(i, k) = norm(diag(sqrt(diag(P_cov(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
@@ -151,7 +151,7 @@ CRLB_PF = mean(CRLB_PF);
 TIME_PF = mean(TIME_PF)
 
 for i=1:nIterations
-    [x_state_akf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_AKF(i)] = Main_anisotropic_AKF(plotting, Q_AKF, R_AKF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
+    [x_state_akf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_AKF(i)] = Main_isotropic_AKF(plotting, Q_AKF, R_AKF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
     for k=1 : size(x_state_akf, 2)
         RMSE_AKF(i, k) = norm((x_state_akf(:,k, i)- x_t_vec'));
         CRLB_AKF(i, k) = norm(diag(sqrt(diag(P_cov(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
@@ -163,7 +163,7 @@ CRLB_AKF = mean(CRLB_AKF);
 TIME_AKF = mean(TIME_AKF)
 
 for i=1:nIterations
-    [x_state_hinf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_HINF(i)] = Main_anisotropic_HINF(plotting, Q_HINF, R_HINF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
+    [x_state_hinf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_HINF(i)] = Main_isotropic_HINF(plotting, Q_HINF, R_HINF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
     for k=1 : size(x_state_hinf, 2)
         RMSE_HINF(i, k) = norm((x_state_hinf(:,k, i)- x_t_vec'));
         CRLB_HINF(i, k) = norm(diag(sqrt(diag(P_cov(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
@@ -174,20 +174,20 @@ ERROR_HINF = RMSE_HINF(1800)
 CRLB_HINF = mean(CRLB_HINF);
 TIME_HINF = mean(TIME_HINF)
 
-% for i=1:nIterations
-%     [x_state_ahinf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_AHINF(i)] = Main_anisotropic_AHINF(plotting, Q_AHINF, R_AHINF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
-%     for k=1 : size(x_state_ahinf, 2)
-%         RMSE_AHINF(i, k) = norm((x_state_ahinf(:,k, i)- x_t_vec'));
-%         CRLB_AHINF(i, k) = norm(diag(sqrt(diag(P_cov(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
-%     end;
-% end
-% RMSE_AHINF = mean(RMSE_AHINF);
-% ERROR_AHINF = RMSE_AHINF(1800)
-% CRLB_AHINF = mean(CRLB_AHINF);
-% TIME_AHINF = mean(TIME_AHINF)
+for i=1:nIterations
+    [x_state_ahinf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_AHINF(i)] = Main_isotropic_AHINF(plotting, Q_AHINF, R_AHINF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit);
+    for k=1 : size(x_state_ahinf, 2)
+        RMSE_AHINF(i, k) = norm((x_state_ahinf(:,k, i)- x_t_vec'));
+        CRLB_AHINF(i, k) = norm(diag(sqrt(diag(P_cov(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
+    end;
+end
+RMSE_AHINF = mean(RMSE_AHINF);
+ERROR_AHINF = RMSE_AHINF(1800)
+CRLB_AHINF = mean(CRLB_AHINF);
+TIME_AHINF = mean(TIME_AHINF)
 
 for i=1:nIterations
-    [x_state_epf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_EPF(i)] = Main_anisotropic_EPF(plotting, Q_EPF, R_EPF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit,N);
+    [x_state_epf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_EPF(i)] = Main_isotropic_EPF(plotting, Q_EPF, R_EPF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pinit,N);
     for k=1 : size(x_state_epf, 2)
         RMSE_EPF(i, k) = norm((x_state_epf(:,k, i)- x_t_vec'));
         CRLB_EPF(i, k) = norm(diag(sqrt(diag(P_cov(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
@@ -198,17 +198,17 @@ ERROR_EPF = RMSE_EPF(1800)
 CRLB_EPF = mean(CRLB_EPF);
 TIME_EPF = mean(TIME_EPF)
 
-% for i=1:nIterations
-%     [x_state_upf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_UPF(i)] = Main_anisotropic_UPF(plotting, Q_UPF, R_UPF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pupf,N);
-%     for k=1 : size(x_state_upf, 2)
-%         RMSE_UPF(i, k) = norm((x_state_upf(:,k, i)- x_t_vec'));
-%         CRLB_UPF(i, k) = norm(diag(sqrt(diag(P_cov(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
-%     end;
-% end
-% RMSE_UPF = mean(RMSE_UPF);
-% ERROR_UPF = RMSE_UPF(1800)
-% CRLB_UPF = mean(CRLB_UPF);
-% TIME_UPF = mean(TIME_UPF)
+for i=1:nIterations
+    [x_state_upf(:, :, i), x_t_vec, P_cov(:,:,:,i),TIME_UPF(i)] = Main_isotropic_UPF(plotting, Q_UPF, R_UPF, x_jammer(:,:,i), x_uav(:,:,i), psi_uav(:,:,i), Pupf,N);
+    for k=1 : size(x_state_upf, 2)
+        RMSE_UPF(i, k) = norm((x_state_upf(:,k, i)- x_t_vec'));
+        CRLB_UPF(i, k) = norm(diag(sqrt(diag(P_cov(:,:,k,i))))); % Eliminate the cross terms of the inverse of the covariance matrix
+    end;
+end
+RMSE_UPF = mean(RMSE_UPF);
+ERROR_UPF = RMSE_UPF(1800)
+CRLB_UPF = mean(CRLB_UPF);
+TIME_UPF = mean(TIME_UPF)
 
 
 %% Individual plots for each filter -- Filter vs Cramer Rao Lower Bound
@@ -304,23 +304,23 @@ ylim('auto')
 title('Final track HINF RMSE (m)')
 print('./Graphs/HINF_final','-dsvg')
 
-% % AHINF
-% CRLB_AHINF(1,1:25) = NaN;
-% figure('Visible','off')
-% plot(RMSE_AHINF)
-% hold on
-% plot(CRLB_AHINF, 'g')
-% legend('RMSE', 'CRLB')
-% title('AHINF RMSE (m)')
-% xlabel('Time step')
-% ylabel('RMSE (m)')
-% print('./Graphs/AHINF','-dsvg')
-% 
-% % AHINF-Final
-% xlim([1000, 1800])
-% ylim('auto')
-% title('Final track AHINF RMSE (m)')
-% print('./Graphs/AHINF_final','-dsvg')
+% AHINF
+CRLB_AHINF(1,1:25) = NaN;
+figure('Visible','off')
+plot(RMSE_AHINF)
+hold on
+plot(CRLB_AHINF, 'g')
+legend('RMSE', 'CRLB')
+title('AHINF RMSE (m)')
+xlabel('Time step')
+ylabel('RMSE (m)')
+print('./Graphs/AHINF','-dsvg')
+
+% AHINF-Final
+xlim([1000, 1800])
+ylim('auto')
+title('Final track AHINF RMSE (m)')
+print('./Graphs/AHINF_final','-dsvg')
 
 % EPF
 CRLB_EPF(1,1:25) = NaN;
@@ -340,23 +340,23 @@ ylim('auto')
 title('Final track PF RMSE (m)')
 print('./Graphs/EPF_final','-dsvg')
 
-% % UPF
-% CRLB_UPF(1,1:25) = NaN;
-% figure('Visible','off')
-% plot(RMSE_UPF)
-% hold on
-% plot(CRLB_UPF, 'g')
-% legend('RMSE', 'CRLB')
-% title('UPF RMSE (m)')
-% xlabel('Time step')
-% ylabel('RMSE (m)')
-% print('./Graphs/UPF','-dsvg')
-% 
-% % UPF-Final
-% xlim([1000, 1800])
-% ylim('auto')
-% title('Final track PF RMSE (m)')
-% print('./Graphs/UPF_final','-dsvg')
+% UPF
+CRLB_UPF(1,1:25) = NaN;
+figure('Visible','off')
+plot(RMSE_UPF)
+hold on
+plot(CRLB_UPF, 'g')
+legend('RMSE', 'CRLB')
+title('UPF RMSE (m)')
+xlabel('Time step')
+ylabel('RMSE (m)')
+print('./Graphs/UPF','-dsvg')
+
+% UPF-Final
+xlim([1000, 1800])
+ylim('auto')
+title('Final track PF RMSE (m)')
+print('./Graphs/UPF_final','-dsvg')
 
 
 %% Comparison plots between filters -- EKF vs UKF vs PF
@@ -368,10 +368,10 @@ plot(RMSE_UKF);
 plot(RMSE_PF );
 plot(RMSE_AKF );
 plot(RMSE_HINF);
-% plot(RMSE_AHINF);
+plot(RMSE_AHINF);
 plot(RMSE_EPF);
-% plot(RMSE_UPF);
-legend ('EKF','UKF','PF','AKF','HINF','EPF')
+plot(RMSE_UPF);
+legend ('EKF','UKF','PF','AKF','HINF','AHINF','EPF','UPF')
 xlabel('Time step')
 ylabel('RMSE (m)')
 print('./Graphs/All','-dsvg')

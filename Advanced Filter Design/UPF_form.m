@@ -1,8 +1,8 @@
 
-function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF,G_t_1,G_t_2)
+function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF,N)
 
     persistent firstRun
-    persistent X_s P_s x_hat N
+    persistent X_s P_s x_hat
     persistent n m kappa
     persistent Po
     
@@ -29,8 +29,8 @@ function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_
         for i = 1 : N     
             % This is the region in which the target initialy is assumed
             % The target is randomly placed in this area (information from code extracted)
-            P_init(1,:)=6000*rand(1,N) + 3000; 
-            P_init(2,:)=6000*rand(1,N) + 3000;
+            P_init(1,:)=4000*rand(1,N) + 4000; 
+            P_init(2,:)=4000*rand(1,N) + 4000;
             
             % Initial Covariance for all particles
             P_s_init(:,:,i) = P_cov_ini;
@@ -60,7 +60,7 @@ function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_
 %         Zhat = hk(xy1,xy2,Po(:, i),x_state_ini,h_0)+ sqrt(R) * randn;    
         
         % Error covariance extrapolation
-        P_s(:,:,i) = F*(P_s(:,:,i))*F' + sqrt(Q) * [randn; randn];
+        P_s(:,:,i) = F*(P_s(:,:,i))*F' + Q;
         
         %computing the sigma points
         [Xi W] = SigmaPoints(Po(:, i), P_s(:,:,i), kappa);
@@ -78,7 +78,7 @@ function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_
         % maps sigma points to the measurement space and store in seperate vectore
         hXi = zeros(m, 2*n+1);
         for k = 1:2*n+1
-          hXi(:, k) = hx(x_state_ini,fXi(:,k),xy1,xy2,h_0,G_t_1,G_t_2); 
+          hXi(:, k) = hx(fXi(:,k),xy1,xy2,h_0); 
         end
  
         % exectuing the unscented transformation to measured values
@@ -132,8 +132,7 @@ function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_
         u = u + Ns/N-w(j);
     end 
     
-   %==== Ploting of the Particle Postion in each time step -  Deactivated
-    %(Uncomment for special effects :))
+    %=====
 %     hold on
 %     p2= plot(Po(1,:)/10^3,Po(2,:)/10^3,'r.');
 %     pause(0.001)
@@ -145,7 +144,7 @@ function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_
     %% Equation 6: State update
     
     X_s = Pest;
-    X_s=MovAvgFilter(X_s');
+    %X_s=MovAvgFilter(X_s');
     x_state = X_s;
 
     %% Equation 7: Error covariance update (not updated bc only internal use)
@@ -154,23 +153,34 @@ function [x_state,P_cov,K_EKF_gain]=EPF_form(xy1,xy2,h_0,P_r_filt_ratio,x_state_
 end 
 
 %% ===============================================
-%%
-function h=hx(x_state_ini,X_s,xy1,xy2,h_0,G_t_1,G_t_2)
-six=xy1(1);
-siy=xy1(2);
- 
-skx=xy2(1);
-sky=xy2(2);
- 
-xk=X_s(1);
-yk=X_s(2);
+function h=hx(X_s,uav_init_pos, uav_actual_pos,h_0)
 
-% h (1X1)=alpha
-h=(G_t_2/G_t_1)*((sqrt((((xk-six)^2)+((yk-siy)^2)+(h_0^2)))^2)/(sqrt((((xk-skx)^2)+((yk-sky)^2)+(h_0^2)))^2));
+uav_init_pos = [uav_init_pos, h_0];
+uav_actual_pos = [uav_actual_pos, h_0];
 
+X_predicted = [X_s; h_0];
+
+h=norm(X_predicted - uav_init_pos')^2 / norm(X_predicted - uav_actual_pos')^2;
 end
+
 %%
 function [xPts wPts] = SigmaPoints(x, P, kappa)
+% This function returns the scaled symmetric sigma point distribution.
+%
+%  [xPts, wPts, nPts] = scaledSymmetricSigmaPoints(x,P,alpha,beta,kappa)  
+%
+% Inputs:
+%	 x	      mean
+%	 P	      covariance
+%        alpha        scaling parameter 1
+%        beta         extra weight on zero'th point
+%	 kappa	      scaling parameter 2 (usually set to default 0)
+%
+% Outputs:
+%        xPts	 The sigma points
+%        wPts	 The weights on the points
+%	 nPts	 The number of points
+%
 
 % Number of sigma points and scaling terms
 n    = size(x(:),1);
@@ -178,7 +188,7 @@ nPts = 2*n+1;            % we're using the symmetric SUT
 
 %Design Parameters
 alpha =0.000001;
-beta =0.5;
+beta =2;
 % Recalculate kappa according to scaling parameters
 lambda = alpha^2*(n+kappa)-n;
 
@@ -188,8 +198,7 @@ wPts=zeros(1,nPts);
 xPts=zeros(n,nPts);
 
 % Calculate matrix square root of weighted covariance matrix
-% P = nearestSPD(P);
-Psqrtm=(chol((n+lambda)*P))';  
+Psqrtm=(chol(nearestSPD((n+lambda))*P))';  
 
 % Array of the sigma points
 xPts=[zeros(size(P,1),1) -Psqrtm Psqrtm];
@@ -203,7 +212,61 @@ wPts=[lambda 0.5*ones(1,nPts-1) 0]/(n+lambda);
 % Now calculate the zero'th covariance term weight
 wPts(nPts+1) = wPts(1) + (1-alpha^2) + beta;
 end
+%%
+function Ahat = nearestSPD(A)
+    % nearestSPD - the nearest (in Frobenius norm) Symmetric Positive Definite matrix to A
+    % usage: Ahat = nearestSPD(A)
+    
+    % arguments: (input)
+    %  A - square matrix, which will be converted to the nearest Symmetric
+    %    Positive Definite Matrix.
+    %
+    % Arguments: (output)
+    %  Ahat - The matrix chosen as the nearest SPD matrix to A.
 
+    if nargin ~= 1
+      error('Exactly one argument must be provided.')
+    end
+
+    % test for a square matrix A
+    [r,c] = size(A);
+    if r ~= c
+      error('A must be a square matrix.')
+    elseif (r == 1) && (A <= 0)
+      % A was scalar and non-positive, so just return eps
+      Ahat = eps;
+      return
+    end
+
+    % symmetrize A into B
+    B = (A + A')/2;
+
+    % Compute the symmetric polar factor of B. Call it H.
+    % Clearly H is itself SPD.
+    [U,Sigma,V] = svd(B);
+    H = V*Sigma*V';
+
+    % get Ahat in the above formula
+    Ahat = (B+H)/2;
+
+    % ensure symmetry
+    Ahat = (Ahat + Ahat')/2;
+
+    % test that Ahat is in fact PD. if it is not so, then tweak it just a bit.
+    p = 1;
+    k = 0;
+    while p ~= 0
+      [R,p] = chol(Ahat);
+      k = k + 1;
+      if p ~= 0
+        % Ahat failed the chol test. It must have been just a hair off,
+        % due to floating point trash, so it is simplest now just to
+        % tweak by adding a tiny multiple of an identity matrix.
+        mineig = min(eig(Ahat));
+        Ahat = Ahat + (-mineig*k.^2 + eps(mineig))*eye(size(A));
+      end
+    end
+end
 %%
 function [xm xcov] = UT(Xi, W, noiseCov)  
 %
@@ -230,7 +293,7 @@ function avg = MovAvgFilter(x)
 
 
     if isempty(firstRun)
-      n    = 20;
+      n    = 100;
       
       xbuf = ones(size(x,1),n);
       
